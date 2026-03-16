@@ -1,0 +1,47 @@
+[project]
+name = "hyperrr"
+version = "0.1.0"
+description = "Portable prompt runtime and SDK"
+readme = "README.md"
+requires-python = ">=3.14"
+license = { text = "MIT" }
+keywords = ["llm", "prompts", "ai", "templates"]
+authors = [{ name = "Viraj Trivedi", email = "inf3cti0n95@gmail.com" }]
+
+dependencies = [
+    "pyyaml>=6.0.3",
+]
+
+[build-system]
+requires = ["uv_build>=0.9.25,<0.10.0"]
+build-backend = "uv_build"
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "License :: OSI Approved :: MIT License",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.15.6",
+]
+
+
+[project.urls]
+Homepage = "https://github.com/GoHyperrr/hyperrr-py"
+Repository = "https://github.com/GoHyperrr/hyperrr-py"
+Issues = "https://github.com/GoHyperrr/hyperrr-py/issues"
+
+[tool.ruff]
+line-length = 88
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+addopts = "--cov=hyperrr --cov-report=term-missing"
