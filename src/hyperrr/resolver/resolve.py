@@ -1,16 +1,20 @@
-import os
-
 from hyperrr.exceptions import PromptResolutionError
+from hyperrr.resolver.file import FileResolver
+from hyperrr.resolver.inline import InlineResolver
+
+# from hyperrr.resolver.registry import RegistryResolver
+
+
+RESOLVERS = [
+    FileResolver(),
+    # RegistryResolver(),  # enable later
+    InlineResolver(),  # ALWAYS last
+]
 
 
 def resolve(ref: str) -> str:
-    # file
-    if os.path.isfile(ref):
-        try:
-            with open(ref, "r", encoding="utf-8") as f:
-                return f.read()
-        except Exception as e:
-            raise PromptResolutionError(f"Failed to read {ref}: {e}")
+    for resolver in RESOLVERS:
+        if resolver.can_resolve(ref):
+            return resolver.resolve(ref)
 
-    # inline fallback
-    return ref
+    raise PromptResolutionError(f"Cannot resolve ref: {ref}")
