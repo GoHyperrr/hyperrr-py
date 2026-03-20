@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Dict, List, Union
 
 
 class Node:
@@ -19,10 +19,9 @@ class VariableNode(Node):
 @dataclass
 class PromptCallNode(Node):
     ref: str
-    kwargs: Dict[str, str]
+    kwargs: Dict[str, Union[str, List[Node]]]
 
 
 @dataclass
-class Template:
-    schema: dict
-    nodes: List[Node]
+class ExpressionNode(Node):
+    expr: str

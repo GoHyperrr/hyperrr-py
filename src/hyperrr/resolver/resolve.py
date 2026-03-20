@@ -1,20 +1,18 @@
-from hyperrr.exceptions import PromptResolutionError
-from hyperrr.resolver.file import FileResolver
-from hyperrr.resolver.inline import InlineResolver
+from .file import FileResolver
+from .registry import RegistryResolver
 
-# from hyperrr.resolver.registry import RegistryResolver
-
-
-RESOLVERS = [
+resolvers = [
+    RegistryResolver(),
     FileResolver(),
-    # RegistryResolver(),  # enable later
-    InlineResolver(),  # ALWAYS last
 ]
 
 
 def resolve(ref: str) -> str:
-    for resolver in RESOLVERS:
+    print("RESOLVE:", ref)
+
+    for resolver in resolvers:
         if resolver.can_resolve(ref):
+            print("→ using", resolver.__class__.__name__)
             return resolver.resolve(ref)
 
-    raise PromptResolutionError(f"Cannot resolve ref: {ref}")
+    raise ValueError(f"No resolver found for {ref}")

@@ -3,16 +3,16 @@ import textwrap
 
 import yaml
 
-from hyperrr.ast import TextNode, VariableNode
+from hyperrr.ast import PromptCallNode, TextNode, VariableNode
 from hyperrr.exceptions import PromptParseError
 from hyperrr.parser.args import parse_args
-from hyperrr.parser.remap import remap_nodes
-from hyperrr.resolver.resolve import resolve
 
-TOKEN_PATTERN = re.compile(r"{{\s*(.*?)\s*}}")
+TOKEN_PATTERN = re.compile(r"\{\{\s*(.*?)\s*\}\}")
 
 
 def parse(content: str):
+    print("PARSING CONTENT:", content)
+
     content = content.strip()
 
     if content.startswith("---"):
@@ -32,37 +32,49 @@ def parse(content: str):
         body = textwrap.dedent(content).strip()
         schema = {}
 
-    # 🔥 Build AST
+    # 🔥 support top-level expressions
+    if not TOKEN_PATTERN.search(body):
+        body = f"{{{{ {body} }}}}"
+
     nodes = []
     last_index = 0
+
+    print("BODY:", body)
 
     for match in TOKEN_PATTERN.finditer(body):
         start, end = match.span()
 
-        # text before
         if start > last_index:
             nodes.append(TextNode(body[last_index:start]))
 
         expr = match.group(1).strip()
 
-        # 🔥 inline prompt() → resolve + inline AST
+        print("EXPR:", expr)
+
         if expr.startswith("prompt("):
-            ref, kwargs = parse_args(expr[7:-1])
+            ref, raw_kwargs = parse_args(expr)
+            kwargs = {}
 
-            raw = resolve(ref)
-            child_schema, child_nodes = parse(raw)
+            for key, value in raw_kwargs.items():
+                if isinstance(value, str) and "{{" in value:
+                    _, nodes = parse(value)
+                    kwargs[key] = nodes
+                else:
+                    kwargs[key] = value
 
-            # remap variables
-            remapped = remap_nodes(child_nodes, kwargs)
+            print("REF:", ref)
 
-            nodes.extend(remapped)
-
+            nodes.append(
+                PromptCallNode(
+                    ref=ref,
+                    kwargs=kwargs,
+                )
+            )
         else:
-            nodes.append(VariableNode(name=expr))
+            nodes.append(VariableNode(expr))
 
         last_index = end
 
-    # remaining text
     if last_index < len(body):
         nodes.append(TextNode(body[last_index:]))
 

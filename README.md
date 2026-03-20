@@ -1,33 +1,17 @@
-# 🚀 Hyperrr SDK — Specification & Documentation
+# Hyperrr SDK (Python)
 
-## ✨ Overview
+Hyperrr is a **prompt runtime engine** that lets you compose, reuse, and execute prompts like code.
 
-**Hyperrr** is a lightweight prompt runtime that lets you:
+It introduces a **DSL + AST + execution model** for prompts, enabling:
 
-* Write reusable prompts
-* Compose prompts from other prompts
-* Pass structured inputs
-* Run prompts from files or inline strings
-
----
-
-## 🧠 Core Philosophy
-
-> **A prompt is a pure function**
-
-```text
-prompt(ref, inputs) → string
-```
-
-* No global state
-* No side effects
-* Deterministic execution
+* Reusable prompt packages
+* Nested prompt composition
+* Remote prompt resolution (registry)
+* Strong input validation
 
 ---
 
-## ⚡ Quick Start
-
-### Install
+## 🚀 Installation
 
 ```bash
 pip install hyperrr
@@ -35,410 +19,201 @@ pip install hyperrr
 
 ---
 
-### Run an inline prompt
+## ⚡ Quick Example
 
 ```python
 from hyperrr import prompt
 
-print(prompt("Hello {{ name }}", name="Viraj"))
+result = prompt(
+    '{{ prompt("viraj/sample@1") }}',
+    name="Viraj"
+)
+
+print(result)
 ```
 
 ---
 
-### Run a file prompt
+## 🧠 Core Concepts
 
-```python
-print(prompt("./hello.prompt", name="Viraj"))
-```
+### 1. Prompt DSL
 
+```jinja
 ---
-
-## 📄 Prompt File Format
-
-A `.prompt` file contains:
-
-```text
----
-name: example
+name: hello_prompt
 inputs:
   name: string
-  age: string?
 ---
-Hello {{ name }}! You are {{ age }} years old.
+
+Hello {{ name }} 👋
 ```
 
 ---
 
-### Structure
-
-| Section             | Description              |
-| ------------------- | ------------------------ |
-| Frontmatter (`---`) | Optional metadata (YAML) |
-| Body                | Prompt template          |
-
----
-
-## 🧩 Variables
-
-Variables are defined using:
+### 2. Prompt Calls
 
 ```jinja
-{{ variable_name }}
+{{ prompt("org/name@version") }}
 ```
 
 ---
 
-### Example
+### 3. Nested Composition
 
 ```jinja
-Hello {{ name }}
+Hello
+{{ prompt("org/header@1") }}
+{{ prompt("org/body@1") }}
 ```
 
 ---
 
-### Passing Inputs
-
-```python
-prompt("Hello {{ name }}", name="Viraj")
-```
-
----
-
-## 📥 Inputs Schema
-
-Defined in frontmatter:
-
-```yaml
-inputs:
-  name: string
-  age: string?
-```
-
----
-
-### Rules
-
-| Syntax    | Meaning           |
-| --------- | ----------------- |
-| `string`  | required          |
-| `string?` | optional          |
-| dict      | supports defaults |
-
----
-
-### Example with default
-
-```yaml
-inputs:
-  tone:
-    type: string
-    default: formal
-```
-
----
-
-## 🧱 Prompt Composition
-
-You can reuse prompts using:
-
-```jinja
-{{ prompt("ref", key=value) }}
-```
-
----
-
-### Example
-
-#### `child.prompt`
-
-```jinja
-Summary: {{ text }}
-```
-
-#### `parent.prompt`
-
-```jinja
-Write about {{ topic }}
-
-{{ prompt("./child.prompt", text=topic) }}
-```
-
----
-
-### Execution
-
-```python
-prompt("./parent.prompt", topic="AI")
-```
-
----
-
-### Output
+## 🏗 Architecture
 
 ```text
-Write about AI
-
-Summary: AI
+Input String
+   ↓
+Parser → AST
+   ↓
+Executor → Runtime Evaluation
+   ↓
+Resolver → Fetch Prompt Content
 ```
 
 ---
 
-## 🔗 Prompt References
+### 🔹 Parser
 
-Hyperrr supports multiple prompt sources:
+* Converts prompt into AST
+* No IO
+* Handles:
 
-| Type              | Example              |
-| ----------------- | -------------------- |
-| File              | `"./a.prompt"`       |
-| Inline            | `"Hello {{name}}"`   |
-| Registry (future) | `"org/name:version"` |
-
----
-
-## ⚙️ Resolution System
-
-Hyperrr resolves prompts using a deterministic chain:
-
-```text
-File → Registry → Inline
-```
+  * Variables
+  * Prompt calls
 
 ---
 
-### Built-in Resolvers
-
-| Resolver           | Purpose                 |
-| ------------------ | ----------------------- |
-| `FileResolver`     | local `.prompt` files   |
-| `InlineResolver`   | fallback for strings    |
-| `RegistryResolver` | (future) remote prompts |
-
----
-
-## 🧠 Execution Pipeline
-
-```text
-prompt(ref, inputs)
-   ↓
-resolve(ref) → string
-   ↓
-parse(string) → (schema, AST)
-   ↓
-validate(schema, inputs)
-   ↓
-render(AST, inputs)
-   ↓
-output
-```
-
----
-
-## 🌳 AST Model
-
-Hyperrr parses prompts into an Abstract Syntax Tree:
-
-### Node Types
+### 🔹 AST Nodes
 
 * `TextNode`
 * `VariableNode`
+* `PromptCallNode`
 
 ---
 
-### Example
+### 🔹 Executor
 
-```jinja
-Hello {{ name }}
-```
+* Evaluates AST
+* Resolves nested prompts
+* Handles input propagation
 
-Becomes:
+---
+
+### 🔹 Resolver
+
+* Fetches prompt content
+* Supports:
+
+  * Registry
+  * Local files
+
+---
+
+## 🔄 Input Propagation
+
+Inputs automatically flow into nested prompts:
 
 ```python
-[
-  TextNode("Hello "),
-  VariableNode("name")
-]
+prompt('{{ prompt("a@1") }}', name="Viraj")
 ```
 
 ---
 
-## 🔄 Prompt Inlining (Compile-Time)
-
-Nested prompts are:
-
-> **Resolved and inlined at parse time**
-
----
-
-### Example
-
-```jinja
-{{ prompt("./child.prompt", text=topic) }}
-```
-
-Becomes:
-
-```jinja
-Summary: {{ topic }}
-```
-
----
-
-### Benefits
-
-* No runtime recursion
-* Deterministic execution
-* Easier debugging
-
----
-
-## ✅ Validation
-
-Validation happens in two stages:
-
----
-
-### 1. Schema Validation
-
-Ensures required inputs exist.
+## 📦 Registry Integration
 
 ```python
-prompt("./a.prompt", name="Viraj")  # OK
-prompt("./a.prompt")                # Error
+prompt('{{ prompt("viraj/sample@1") }}')
 ```
 
 ---
 
-### 2. Runtime Validation
+## 🧪 Validation
 
-Ensures all variables exist during rendering.
-
-```jinja
-{{ age }}
-```
-
-If `age` missing → error.
-
----
-
-## ⚠️ Important Rules
-
-### 1. Optional inputs are not optional in template
+Inputs are validated against schema:
 
 ```yaml
-age: string?
+inputs:
+  name: string
 ```
-
-Still requires:
-
-```jinja
-{{ age }}
-```
-
-Unless handled manually.
 
 ---
 
-### 2. All variables must resolve
+## 📁 Cache
+
+Prompts are cached locally:
 
 ```text
-Missing variable → runtime error
+~/.hyperrr/cache/
 ```
 
 ---
 
-### 3. Prompt composition requires explicit inputs
+## 🔥 Features
 
-```jinja
-{{ prompt("./child.prompt") }} ❌
-```
-
-```jinja
-{{ prompt("./child.prompt", text=topic) }} ✅
-```
+* AST-based execution
+* Nested prompt composition
+* Remote registry support
+* Input validation
+* Disk caching
 
 ---
 
-## 🧪 Examples
+# 🚧 Future Roadmap
 
----
-
-### Inline Prompt
+## 1. Subpath Support
 
 ```python
-prompt("Sum: {{ a }} + {{ b }}", a=1, b=2)
+prompt("org/name@1:header")
 ```
 
 ---
 
-### File Prompt
-
-```python
-prompt("./math.prompt", a=1, b=2)
-```
-
----
-
-### Nested Prompt
+## 2. Prompt Functions
 
 ```jinja
-{{ prompt("./child.prompt", text=topic) }}
+{{ uppercase(name) }}
 ```
 
 ---
 
-## 🧱 Error Types
+## 3. Control Flow
 
-| Error                   | Description                |
-| ----------------------- | -------------------------- |
-| `PromptParseError`      | invalid prompt format      |
-| `PromptResolutionError` | failed to load prompt      |
-| `PromptRenderError`     | missing variables / inputs |
-
----
-
-## 🧠 Design Decisions
-
-### Why AST?
-
-* Enables composition
-* Enables static analysis
-* Avoids string hacks
-
----
-
-### Why no runtime recursion?
-
-* Simpler execution model
-* Better performance
-* Easier debugging
-
----
-
-### Why resolver chain?
-
-* Extensible
-* Deterministic
-* Future registry support
-
----
-
-## 🚀 Roadmap
-
-* [ ] Registry support (`org/name:version`)
-* [ ] Type validation
-* [ ] Conditionals (`if`)
-* [ ] Defaults in templates
-* [ ] Dependency graph
-* [ ] Prompt packaging
-
----
-
-## 💡 Philosophy
-
-Hyperrr is designed to be:
-
-```text
-Simple to start
-Composable by design
-Powerful when scaled
+```jinja
+{{ if condition }}
+{{ for item in items }}
 ```
+
+---
+
+## 4. Streaming Execution
+
+---
+
+## 5. In-memory Cache Layer
+
+---
+
+## 6. Multi-language SDKs
+
+* JS
+* Go
+
+---
+
+# 🧠 Vision
+
+Hyperrr turns prompts into:
+
+> **Composable, versioned, executable units — like code packages**
+
+---

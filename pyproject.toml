@@ -10,6 +10,7 @@ authors = [{ name = "Viraj Trivedi", email = "inf3cti0n95@gmail.com" }]
 
 dependencies = [
     "pyyaml>=6.0.3",
+    "requests>=2.32.5",
 ]
 
 [build-system]
